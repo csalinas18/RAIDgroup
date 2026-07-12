@@ -47,22 +47,26 @@ function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered })
     bg = '#13131A'
   }
 
-  const shake = destroyed
+  // El temblor/pulso va en un contenedor interno: si se animara `x`/`scale`
+  // sobre el mismo elemento que usa `layout`, ambos pelearían por el mismo
+  // `transform` y las tarjetas saldrían de posición al mezclar.
+  const emphasis = destroyed
     ? { x: [0, -8, 8, -8, 8, -4, 4, 0] }
     : recovered
       ? { scale: [1, 1.06, 1] }
-      : {}
+      : { x: 0, scale: 1 }
 
   return (
     <motion.div
       layout
       layoutId={`disk-${fragIndex}`}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0, borderColor, boxShadow, backgroundColor: bg, ...shake }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, borderColor, boxShadow, backgroundColor: bg }}
       className="relative rounded-xl border p-4 backdrop-blur-sm select-none"
       style={{ borderWidth: 1 }}
     >
+      <motion.div animate={emphasis} transition={{ duration: 0.5 }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-white/70">
@@ -110,6 +114,7 @@ function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered })
           />
         </div>
       </div>
+      </motion.div>
     </motion.div>
   )
 }
