@@ -1,9 +1,9 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 /**
  * Ícono de disco duro (SVG inline).
  */
-function DiskIcon({ className = '' }) {
+function DiskIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -12,7 +12,6 @@ function DiskIcon({ className = '' }) {
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
       width="16"
       height="16"
     >
@@ -25,15 +24,16 @@ function DiskIcon({ className = '' }) {
 }
 
 /**
- * Tarjeta individual de disco. Cada tarjeta está identificada por el fragmento
- * lógico que contiene (layoutId) para que Framer Motion la deslice cuando una
- * permutación reordena el clúster.
+ * Tarjeta de disco físico. Las 9 tarjetas ocupan SIEMPRE una celda fija de la
+ * grilla 3×3 (no se reordenan ni se desplazan), de modo que ninguna puede
+ * "desaparecer" por una animación de layout. El movimiento de un fragmento entre
+ * discos se muestra con un fundido del contenido: cuando el fragmento lógico que
+ * ocupa este disco cambia, el bloque de datos hace fade-in y la tarjeta pulsa.
  */
 function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered }) {
   const hasData = fragment != null && !destroyed
   const preview = hasData ? fragment.slice(0, 40) : ''
 
-  // Estado visual → colores del borde/fondo.
   let borderColor = 'rgba(255,255,255,0.06)'
   let boxShadow = 'none'
   let bg = '#13131A'
@@ -47,9 +47,6 @@ function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered })
     bg = '#13131A'
   }
 
-  // El temblor/pulso va en un contenedor interno: si se animara `x`/`scale`
-  // sobre el mismo elemento que usa `layout`, ambos pelearían por el mismo
-  // `transform` y las tarjetas saldrían de posición al mezclar.
   const emphasis = destroyed
     ? { x: [0, -8, 8, -8, 8, -4, 4, 0] }
     : recovered
@@ -58,68 +55,95 @@ function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered })
 
   return (
     <motion.div
-      layout
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1, borderColor, boxShadow, backgroundColor: bg }}
-      className="relative rounded-xl border p-4 backdrop-blur-sm select-none"
+      initial={false}
+      animate={{ borderColor, boxShadow, backgroundColor: bg }}
+      transition={{ duration: 0.3 }}
+      className="relative rounded-xl border p-4 select-none overflow-hidden"
       style={{ borderWidth: 1 }}
     >
       <motion.div animate={emphasis} transition={{ duration: 0.5 }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-white/70">
-          <DiskIcon />
-          <span className="text-xs font-semibold tracking-wider">
-            DISCO {position + 1}
-          </span>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5 text-white/70">
+            <DiskIcon />
+            <span className="text-xs font-semibold tracking-wider">
+              DISCO {position + 1}
+            </span>
+          </div>
+          {!destroyed && fragIndex != null && (
+            <motion.span
+              key={fragIndex}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-cyan-glow text-accent-cyan-light border border-accent-cyan/20"
+            >
+              F{fragIndex + 1}
+            </motion.span>
+          )}
         </div>
-        {!destroyed && (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-cyan-glow text-accent-cyan-light border border-accent-cyan/20">
-            F{fragIndex + 1}
-          </span>
-        )}
-      </div>
 
-      {/* Contenido */}
-      {destroyed ? (
-        <div className="flex items-center gap-2 text-status-error font-semibold text-sm py-3">
-          <span className="text-lg">⚠</span> FALLO FÍSICO
+        {/* Contenido — se refresca con fundido cuando cambia el fragmento */}
+        <div className="min-h-[2.5rem]">
+          <AnimatePresence mode="wait">
+            {destroyed ? (
+              <motion.div
+                key="destroyed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-2 text-status-error font-semibold text-sm py-3"
+              >
+                <span className="text-lg">⚠</span> FALLO FÍSICO
+              </motion.div>
+            ) : hasData ? (
+              <motion.p
+                key={`f-${fragIndex}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="font-mono text-sm text-accent-cyan-light break-all leading-snug"
+              >
+                {preview || <span className="text-white/20">·</span>}
+                {fragment.length > 40 && <span className="text-white/25">…</span>}
+              </motion.p>
+            ) : (
+              <p
+                key="empty"
+                className="font-mono text-sm text-white/20 py-3"
+              >
+                — sin datos —
+              </p>
+            )}
+          </AnimatePresence>
         </div>
-      ) : hasData ? (
-        <p className="font-mono text-sm text-accent-cyan-light break-all leading-snug min-h-[2.5rem]">
-          {preview || <span className="text-white/20">·</span>}
-          {fragment.length > 40 && <span className="text-white/25">…</span>}
-        </p>
-      ) : (
-        <p className="font-mono text-sm text-white/20 py-3">— sin datos —</p>
-      )}
 
-      {/* Barra de desgaste */}
-      <div className="mt-3">
-        <div className="flex items-center justify-between text-[10px] text-white/30 mb-1">
-          <span>DESGASTE</span>
-          <span className="font-mono">{wear}</span>
+        {/* Barra de desgaste */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[10px] text-white/30 mb-1">
+            <span>DESGASTE</span>
+            <span className="font-mono">{wear}</span>
+          </div>
+          <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: 'linear-gradient(90deg,#22D3EE,#7C3AED)' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, wear * 12)}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
         </div>
-        <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg,#22D3EE,#7C3AED)',
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, wear * 12)}%` }}
-            transition={{ duration: 0.4 }}
-          />
-        </div>
-      </div>
       </motion.div>
     </motion.div>
   )
 }
 
 /**
- * ClusterGrid — grilla 3×3 de discos + bloque de paridad.
+ * ClusterGrid — grilla 3×3 de discos físicos + bloque de paridad.
+ *
+ * Cada celda corresponde a un disco FÍSICO fijo (posición 0..8). El fragmento
+ * lógico que ocupa el disco `position` es `mapping[position]`.
  */
 export default function ClusterGrid({
   fragments,
@@ -135,12 +159,12 @@ export default function ClusterGrid({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 9 }, (_, position) => {
-          const fragIndex = hasFile ? mapping[position] : position
+          const fragIndex = hasFile ? mapping[position] : null
           const destroyed = destroyedDisks.includes(position)
           const fragment = hasFile ? fragments[position] : null
           return (
             <DiskCard
-              key={fragIndex}
+              key={position}
               position={position}
               fragIndex={fragIndex}
               fragment={fragment}
@@ -155,7 +179,6 @@ export default function ClusterGrid({
       {/* Bloque de paridad P */}
       <div className="flex justify-center">
         <motion.div
-          layout
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border p-4 w-2/3 backdrop-blur-sm"
