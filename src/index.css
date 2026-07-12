@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: #07070a;
+    color: #e5e7eb;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .section-title {
+    @apply text-xs font-semibold tracking-widest uppercase text-white/40;
+  }
+
+  .btn-primary {
+    @apply bg-accent-purple hover:bg-accent-purple-light text-white font-medium px-4 py-2 rounded-lg transition-all duration-200;
+    box-shadow: 0 0 0 rgba(124, 58, 237, 0);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+  }
+
+  .btn-move {
+    @apply bg-bg-card border border-border-default hover:border-accent-purple font-mono font-bold text-white transition-all duration-200 rounded-lg;
+  }
+  .btn-move:hover {
+    background-color: rgba(124, 58, 237, 0.15);
+  }
+
+  .btn-danger {
+    @apply bg-transparent border text-status-error transition-all duration-200 rounded-lg;
+    border-color: rgba(220, 38, 38, 0.5);
+  }
+  .btn-danger:hover {
+    background-color: rgba(220, 38, 38, 0.15);
+    border-color: #dc2626;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border;
+  }
+
+  .glow-cyan {
+    text-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+  }
+}
+
+/* Scrollbars personalizados */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.7);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.4) transparent;
+}
