@@ -59,7 +59,6 @@ function DiskCard({ position, fragIndex, fragment, wear, destroyed, recovered })
   return (
     <motion.div
       layout
-      layoutId={`disk-${fragIndex}`}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, borderColor, boxShadow, backgroundColor: bg }}
