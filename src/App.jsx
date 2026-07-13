@@ -181,12 +181,12 @@ export default function App() {
   )
 
   function handleMove(moveName) {
-    if (busy) return
+    if (busy || destroyedDisks.length) return
     stepMove(moveName)
   }
 
   function handleRemoveLast() {
-    if (busy || history.length === 0) return
+    if (busy || destroyedDisks.length || history.length === 0) return
     const newHistory = history.slice(0, -1)
     system.restoreHistory(newHistory)
     const newPerm = system.getCurrentPermutation()
@@ -209,7 +209,7 @@ export default function App() {
   }
 
   async function handleShuffle() {
-    if (busy || !originalRef.current) return
+    if (busy || destroyedDisks.length || !originalRef.current) return
     const count = 8 + Math.floor(Math.random() * 5) // 8–12
     const seq = Array.from(
       { length: count },
@@ -220,7 +220,7 @@ export default function App() {
   }
 
   async function handleSolve() {
-    if (busy || history.length === 0) return
+    if (busy || destroyedDisks.length || history.length === 0) return
     // La secuencia inversa del historial actual devuelve Σ a la identidad.
     const seq = history
       .slice()
@@ -285,6 +285,7 @@ export default function App() {
   }
 
   // ------- Estado global del sistema (badge) -------
+  const degraded = destroyedDisks.length > 0
   const isIdentity = currentPermutation.isIdentity()
   let systemStatus
   if (!originalFragments)
@@ -398,7 +399,8 @@ export default function App() {
               onReset={handleReset}
               onRemoveLast={handleRemoveLast}
               busy={busy}
-              disabled={!originalFragments}
+              disabled={!originalFragments || degraded}
+              degraded={degraded}
             />
           </div>
 
@@ -445,6 +447,7 @@ export default function App() {
                     operationLog={operationLog}
                     animationSpeed={animationSpeed}
                     onSolveAnimated={handleSolve}
+                    degraded={degraded}
                   />
                 )}
                 {activeTab === 'parity' && (

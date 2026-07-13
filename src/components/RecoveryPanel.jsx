@@ -49,6 +49,7 @@ export default function RecoveryPanel({
   operationLog = [],
   animationSpeed = 400,
   onSolveAnimated,
+  degraded = false,
 }) {
   const [reconstructed, setReconstructed] = useState(null) // string[9]
   const [stepIndex, setStepIndex] = useState(-1)
@@ -119,6 +120,14 @@ export default function RecoveryPanel({
         <PhaseIndicator phase={phase} />
       </div>
 
+      {degraded && (
+        <div className="rounded-lg bg-status-error-glow border border-status-error/30 px-3 py-2 text-xs text-status-error">
+          ⚠ Hay un disco caído: falta un fragmento. Una permutación no puede
+          reconstruir datos ausentes — primero recupera el disco por XOR (panel
+          Paridad / Z₂) y luego reconstruye.
+        </div>
+      )}
+
       {/* Reconstrucción iterativa */}
       <div className="rounded-xl bg-bg-secondary border border-border-subtle p-4 space-y-3">
         <h4 className="text-sm font-semibold text-accent-purple-light">
@@ -129,7 +138,7 @@ export default function RecoveryPanel({
         </div>
         <button
           onClick={reconstructStepByStep}
-          disabled={!hasFile || history.length === 0 || animating}
+          disabled={!hasFile || history.length === 0 || animating || degraded}
           className="btn-primary text-sm disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Reconstruir paso a paso
@@ -161,7 +170,7 @@ export default function RecoveryPanel({
         </h4>
         <button
           onClick={reconstructDirectly}
-          disabled={!hasFile || animating}
+          disabled={!hasFile || animating || degraded}
           className="btn-move text-sm px-4 py-2 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Reconstruir directo (σ⁻¹)

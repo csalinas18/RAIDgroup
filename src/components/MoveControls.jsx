@@ -24,6 +24,7 @@ export default function MoveControls({
   onRemoveLast,
   busy = false,
   disabled = false,
+  degraded = false,
 }) {
   return (
     <div className="rounded-2xl bg-bg-card border border-border-subtle p-5 space-y-5">
@@ -35,6 +36,14 @@ export default function MoveControls({
           </span>
         )}
       </div>
+
+      {degraded && (
+        <div className="rounded-lg bg-status-error-glow border border-status-error/30 px-3 py-2 text-xs text-status-error">
+          ⚠ Hay un disco caído. Recupéralo (panel Paridad / Z₂) o pulsa
+          <span className="font-semibold"> Reiniciar</span> antes de seguir
+          moviendo el clúster.
+        </div>
+      )}
 
       {/* Botones directos */}
       <div className="grid grid-cols-3 gap-2">
