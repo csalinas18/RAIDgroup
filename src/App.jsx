@@ -221,6 +221,7 @@ export default function App() {
 
   async function handleSolve() {
     if (busy || destroyedDisks.length || history.length === 0) return
+    if (system.getCurrentPermutation().isIdentity()) return
     // La secuencia inversa del historial actual devuelve Σ a la identidad.
     const seq = history
       .slice()
@@ -401,6 +402,7 @@ export default function App() {
               busy={busy}
               disabled={!originalFragments || degraded}
               degraded={degraded}
+              solved={isIdentity}
             />
           </div>
 

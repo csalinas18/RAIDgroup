@@ -138,7 +138,9 @@ export default function RecoveryPanel({
         </div>
         <button
           onClick={reconstructStepByStep}
-          disabled={!hasFile || history.length === 0 || animating || degraded}
+          disabled={
+            !hasFile || history.length === 0 || animating || degraded || isIdentity
+          }
           className="btn-primary text-sm disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Reconstruir paso a paso
@@ -170,7 +172,7 @@ export default function RecoveryPanel({
         </h4>
         <button
           onClick={reconstructDirectly}
-          disabled={!hasFile || animating || degraded}
+          disabled={!hasFile || animating || degraded || isIdentity}
           className="btn-move text-sm px-4 py-2 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Reconstruir directo (σ⁻¹)

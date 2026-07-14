@@ -25,6 +25,7 @@ export default function MoveControls({
   busy = false,
   disabled = false,
   degraded = false,
+  solved = false,
 }) {
   return (
     <div className="rounded-2xl bg-bg-card border border-border-subtle p-5 space-y-5">
@@ -111,7 +112,7 @@ export default function MoveControls({
         </button>
         <button
           onClick={onSolve}
-          disabled={disabled || busy || history.length === 0}
+          disabled={disabled || busy || history.length === 0 || solved}
           className="btn-primary py-2 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ✨ Resolver
