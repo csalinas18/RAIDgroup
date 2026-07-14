@@ -307,8 +307,8 @@ export default function App() {
 
   const tabs = [
     { id: 'math', label: 'Matemática' },
-    { id: 'recovery', label: 'Recuperación' },
-    { id: 'parity', label: 'Paridad / Z₂' },
+    { id: 'recovery', label: 'Reconstrucción' },
+    { id: 'parity', label: 'Recuperación' },
   ]
 
   return (
