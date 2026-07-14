@@ -1,19 +1,57 @@
 # RAIDGroup
 
-**Simulador interactivo de consistencia y tolerancia a fallos en almacenamiento
-distribuido, fundamentado en la Teoría de Grupos de Permutaciones (S₉).**
+**Gestión y Recuperación de Datos mediante Estructuras Algebraicas.**
 
-Proyecto para la asignatura de **Matemáticas Discretas** — Ingeniería de Sistemas.
+Simulador web interactivo que modela la consistencia y la tolerancia a fallos de
+un sistema de almacenamiento distribuido usando **Teoría de Grupos de
+Permutaciones (grupo simétrico S₉)** y **aritmética sobre Z₂ (XOR)**.
 
-RAIDGroup modela un clúster de **9 discos duros** dispuestos en una matriz 3×3.
-Un archivo `.txt` se divide en 9 fragmentos (uno por disco). Las operaciones de
-"balanceo de carga" son **permutaciones del grupo simétrico S₉** que redistribuyen
-los fragmentos, y la recuperación se logra aplicando la **secuencia inversa**. La
-destrucción física de un disco se recupera mediante **paridad XOR sobre Z₂**.
+> Proyecto de **Matemáticas Discretas II** - Departamento de Ingeniería de
+> Sistemas e Industrial, Universidad Nacional de Colombia (Sede Bogotá).
+> **Autores:** Brayner Motta · Jhon Patiño · David Pimiento · Camilo Salinas.
 
 ---
 
-## 🚀 Instalación y ejecución
+## Resumen del proyecto
+
+Los sistemas de almacenamiento modernos (Google Drive, Amazon S3, RAID) no
+guardan un archivo en un solo disco: lo dividen en fragmentos y los distribuyen
+entre varias unidades (*block striping*). Esto mejora rendimiento y
+disponibilidad, pero abre dos preguntas:
+
+1. Si los fragmentos se reorganizan constantemente entre discos para balancear la
+   carga, **¿cómo se vuelve exactamente al archivo original?**
+2. Si un disco **falla físicamente**, ¿cómo se recupera su fragmento sin tener
+   una copia completa de respaldo?
+
+RAIDGroup responde ambas con matemáticas discretas:
+
+- Modela un clúster de **9 discos en matriz 3×3**. Un archivo `.txt` se parte en
+  9 fragmentos, uno por disco.
+- Cada reorganización de "balanceo de carga" es una **permutación de S₉**. Las
+  propiedades de grupo (clausura, asociatividad, identidad, inversos) garantizan
+  que **cualquier desorden se revierte exactamente** aplicando la secuencia
+  inversa: `(A∘B∘C)⁻¹ = C⁻¹∘B⁻¹∘A⁻¹`.
+- Un **bloque de paridad XOR** `P = b₁ ⊕ b₂ ⊕ … ⊕ b₉` permite reconstruir el
+  fragmento de un disco destruido, usando la propiedad `a ⊕ a = 0` de Z₂.
+
+Estos son, formalmente, los mismos principios que sustentan **RAID-0**
+(*striping*) y **RAID-5** (paridad XOR).
+
+### Funcionalidades
+
+- Carga y fragmentación de un `.txt` (drag & drop o texto directo).
+- 6 operadores de reorganización (A-F) y sus inversos, con historial y mezcla
+  aleatoria.
+- Panel matemático en tiempo real: permutación acumulada Σ, notación cíclica,
+  orden, tabla de función y verificador de asociatividad.
+- Reconstrucción del archivo **iterativa** (paso a paso) y **directa** (Σ⁻¹).
+- Simulación de **fallo físico** de un disco y recuperación por **XOR**.
+- Persistencia de la sesión en el navegador (IndexedDB).
+
+---
+
+## Instalación y ejecución
 
 Requisitos: **Node.js 18+** y **npm**.
 
@@ -25,9 +63,7 @@ npm install
 npm run dev
 ```
 
-Luego abre `http://localhost:5173/` en Chrome o Firefox.
-
-Otros comandos:
+Abre `http://localhost:5173/` en Chrome o Firefox.
 
 ```bash
 npm run build     # build de producción en dist/
@@ -36,20 +72,31 @@ npm run preview   # previsualiza el build de producción
 
 ### Stack
 
-- **React 18** + **Vite**
-- **Tailwind CSS** (paleta personalizada)
-- **Framer Motion** (animaciones)
-- **idb** (IndexedDB para persistencia)
-- Toda la matemática está implementada **desde cero**, sin librerías de álgebra.
+React 18 + Vite · Tailwind CSS · Framer Motion · `idb` (IndexedDB). Sin backend:
+toda la lógica corre en el cliente. **La matemática está implementada desde
+cero**, sin librerías de álgebra.
+
+### Cómo usarlo
+
+1. Carga un `.txt` o escribe texto → se generan 9 fragmentos y la paridad `P`.
+2. Aplica movimientos (A-F o inversos) o pulsa **Mezclar**; observa Σ en la
+   pestaña **Matemática**.
+3. En la pestaña **Reconstrucción**, recupera el archivo (paso a paso o directo).
+4. En la pestaña **Recuperación**, simula el fallo físico de un disco y
+   recupéralo con XOR.
+
+> Mientras un disco esté destruido, los movimientos y la reconstrucción quedan
+> bloqueados: primero se recupera el dato con XOR (tolerancia a fallos) y solo
+> después se reordena con la permutación inversa (consistencia).
 
 ---
 
-## 📁 Estructura del proyecto
+## Estructura del proyecto
 
 ```
 src/
 ├── main.jsx
-├── App.jsx                     ← estado global, layout y orquestación
+├── App.jsx                     ← estado global, orquestación y persistencia
 ├── index.css                   ← Tailwind + estilos base
 ├── math/                       ← CAPA MATEMÁTICA (JavaScript puro, sin React)
 │   ├── Permutation.js
@@ -62,151 +109,114 @@ src/
 └── components/
     ├── ClusterGrid.jsx         ← grilla 3×3 de discos + bloque de paridad
     ├── FileLoader.jsx          ← carga y fragmentación de .txt
-    ├── MoveControls.jsx        ← botones de movimiento e historial
-    ├── MathPanel.jsx           ← permutación actual, asociatividad, grupo S₉
+    ├── MoveControls.jsx        ← operadores, historial y acciones
+    ├── MathPanel.jsx           ← Σ, notación cíclica, orden, asociatividad
     ├── RecoveryPanel.jsx       ← reconstrucción iterativa y directa
     └── ParityPanel.jsx         ← simulación de fallo + recuperación XOR
 ```
 
----
+La arquitectura sigue tres capas con una regla central: **la capa matemática no
+depende de React ni de la interfaz**, por lo que puede probarse de forma
+independiente.
 
-## 🧮 Descripción de la capa matemática (`src/math/`)
+### Módulos matemáticos principales
 
-### `Permutation.js`
-Representa un elemento de **S₉** como un array `mapping` de 9 índices base-0.
-La identidad es `[0,1,2,3,4,5,6,7,8]`.
-
-| Método | Descripción |
-|---|---|
-| `compose(other)` | Composición `this ∘ other`: `result[i] = this.mapping[other.mapping[i]]`. Primero se aplica `other`, luego `this`. |
-| `inverse()` | Inverso: si `mapping[i] = j` entonces `inverse.mapping[j] = i`. |
-| `order()` | Menor `k ≥ 1` tal que `σᵏ = e`. |
-| `toCycleNotation()` | Notación cíclica base-1, ej. `(1 3 2)(4 5)`; la identidad devuelve `e`. |
-| `apply(array)` | Reordena 9 elementos: `result[i] = array[mapping[i]]`. |
-| `isIdentity()` | `true` si el mapping es la identidad. |
-| `toFunctionTable()` | Devuelve `{ domain, codomain }` para mostrar `σ: {1..9} → {1..9}`. |
-| `static identity()` | Permutación identidad. |
-| `static verifyAssociativity(a,b,c)` | Comprueba `(a∘b)∘c = a∘(b∘c)` y devuelve los pasos intermedios. |
-
-### `DistributedSystem.js`
-Gestiona el estado del clúster. Define los **6 generadores** (3-ciclos) del
-subgrupo de S₉ usado para el balanceo:
-
-| Mov. | Acción | Posiciones |
-|---|---|---|
-| **A** | Rotar fila superior → | [0,1,2] |
-| **B** | Rotar fila inferior → | [6,7,8] |
-| **C** | Rotar columna izquierda ↓ | [0,3,6] |
-| **D** | Rotar columna derecha ↓ | [2,5,8] |
-| **E** | Rotar diagonal principal ↓ | [0,4,8] |
-| **F** | Rotar fila central → | [3,4,5] |
-
-Acumula la permutación actual **Σ** componiendo a la derecha
-(`Σ = Σ ∘ mov`), de modo que para el historial `[A, B, C]` se obtiene
-`Σ = A ∘ B ∘ C` y su inverso es `Σ⁻¹ = C⁻¹ ∘ B⁻¹ ∘ A⁻¹`. Métodos:
-`applyMove`, `applyToFragments`, `reset`, `restoreHistory`,
-`getMoveDescription`.
-
-### `ProtocolController.js`
-El "sistema operativo" del clúster: la lógica de recuperación.
-- `getSolutionSequence(history)` — invierte el historial y cada movimiento:
-  `[A,B,C] → [C⁻¹,B⁻¹,A⁻¹]`.
-- `computeInverseWord(history)` — palabra legible `C⁻¹ ∘ B⁻¹ ∘ A⁻¹`.
-- `reconstructIterative(...)` — aplica la secuencia inversa paso a paso
-  (permite animar la reconstrucción).
-- `reconstructDirect(mixed, σ⁻¹)` — aplica el inverso de una sola vez.
-- `verifyReconstruction(original, reconstructed)` — compara ignorando el padding.
-
-### `ParityEngine.js`
-Tolerancia a fallos mediante **paridad XOR sobre Z₂**.
-- `computeParity(fragments)` — `P = F₀ ⊕ F₁ ⊕ … ⊕ F₈`.
-- `recoverFragment(remaining, P, k)` —
-  `Fₖ = P ⊕ F₀ ⊕ … ⊕ F₍ₖ₋₁₎ ⊕ F₍ₖ₊₁₎ ⊕ … ⊕ F₈`.
-- `verifyIntegrity(fragments, P)` — el XOR total debe ser cero.
-
-Los fragmentos de datos son texto **UTF-8**; los bytes de paridad son binarios
-arbitrarios y se persisten con una codificación Latin1 reversible para no
-corromperlos.
-
-### `FileFragmenter.js`
-- `fragment(text)` — divide en 9 fragmentos de igual longitud (rellena con
-  espacios si es necesario).
-- `reconstruct(fragments)` — concatena y quita el padding final.
+- **`Permutation.js`** - capa base. Representa un elemento de S₉ como un arreglo
+  de 9 índices base-0. Implementa composición `(σ∘τ)(i) = σ(τ(i))`, inverso,
+  orden, notación cíclica y verificación de asociatividad.
+- **`DistributedSystem.js`** - el clúster de 9 discos. Mantiene la permutación
+  acumulada Σ, el historial y el estado. Define los 6 operadores (ver abajo).
+  Compone **a la derecha** (`Σ ← Σ ∘ M`), de modo que el historial `[A,B,C]`
+  corresponde a `Σ = A∘B∘C` y la secuencia de recuperación es `[C⁻¹,B⁻¹,A⁻¹]`.
+- **`ProtocolController.js`** - el "sistema operativo" del clúster. Reconstrucción
+  **iterativa** (invierte el historial y aplica cada inverso paso a paso) y
+  **directa** (aplica Σ⁻¹ de una vez). Ambas se verifican byte a byte.
+- **`ParityEngine.js`** - tolerancia a fallos con XOR sobre Z₂: cálculo de
+  paridad, recuperación de un disco e integridad.
+- **`FileFragmenter.js`** - divide el texto en 9 fragmentos iguales y los reúne.
 
 ---
 
-## 📐 Explicación matemática del proyecto
+## Fundamento matemático
 
 ### El grupo simétrico S₉
-**S₉** es el conjunto de todas las biyecciones (permutaciones) del conjunto
-`{1,2,…,9}` con la operación de **composición de funciones**. Tiene
-`|S₉| = 9! = 362 880` elementos y satisface los **axiomas de grupo**:
 
-1. **Clausura** — la composición de dos permutaciones es otra permutación.
-2. **Asociatividad** — `(a∘b)∘c = a∘(b∘c)`.
-3. **Elemento neutro** — la identidad `e` cumple `σ∘e = e∘σ = σ`.
-4. **Inverso** — cada `σ` tiene `σ⁻¹` con `σ∘σ⁻¹ = e`.
-
-En RAIDGroup cada disco es una de las 9 posiciones y cada movimiento de
-balanceo es un elemento de S₉. Los 6 generadores A–F son **3-ciclos** (orden 3),
-y sus composiciones generan permutaciones de estructura cíclica arbitraria
-dentro del subgrupo que producen.
-
-### Composición e inversos: la recuperación
-Si mezclamos el clúster con la secuencia de movimientos
-`Σ = A ∘ B ∘ C`, para recuperar el archivo original basta aplicar el inverso.
-Por la propiedad del **inverso de un producto** en un grupo:
+Un **grupo** es un par (G, ∘) que cumple **clausura**, **asociatividad**,
+**identidad** e **inversos**. El **grupo simétrico** Sₙ es el conjunto de todas
+las permutaciones de n elementos bajo composición, con `|Sₙ| = n!`. Aquí n = 9:
 
 ```
-(A ∘ B ∘ C)⁻¹ = C⁻¹ ∘ B⁻¹ ∘ A⁻¹
+|S₉| = 9! = 362 880 estados posibles
 ```
 
-Es decir, se deshace en **orden inverso** aplicando el inverso de cada
-movimiento. RAIDGroup lo hace de dos formas equivalentes:
-- **Iterativa** — aplica `C⁻¹`, luego `B⁻¹`, luego `A⁻¹` paso a paso.
-- **Directa** — calcula `Σ⁻¹` y lo aplica de una sola vez.
+Cada redistribución de los 9 fragmentos es un elemento de S₉, y cada propiedad
+del grupo se traduce en una garantía del sistema:
 
-Ambas devuelven exactamente el texto original, ilustrando que la reconstrucción
-es determinista y exacta gracias a la estructura de grupo.
+| Propiedad | Garantía en el simulador |
+|---|---|
+| Clausura | Ninguna secuencia de movimientos produce un estado inválido. |
+| Asociatividad | El orden de agrupación de los movimientos no altera el resultado. |
+| Identidad | Existe el estado inicial `e` (cada fragmento en su disco). |
+| Inversos | Todo desorden se revierte exactamente con `Σ⁻¹`. |
 
-### Paridad y el cuerpo Z₂
-La tolerancia a la **pérdida física de un disco** no se resuelve con
-permutaciones sino con **álgebra sobre Z₂** (el cuerpo de dos elementos `{0,1}`
-con la suma XOR). Se guarda un bloque de paridad:
+### Los 6 operadores generadores
+
+Cada operador es un **3-ciclo** (orden 3): aplicarlo 3 veces regresa al estado
+original. Sus inversos generan el subgrupo de estados alcanzables.
+
+| Op. | Ciclo (base-1) | Acción |
+|---|---|---|
+| **A** | (1 3 2) | Rota la fila superior → |
+| **B** | (7 9 8) | Rota la fila inferior → |
+| **C** | (1 7 4) | Rota la columna izquierda ↓ |
+| **D** | (3 9 6) | Rota la columna derecha ↓ |
+| **E** | (1 9 5) | Rota la diagonal principal ↓ |
+| **F** | (4 6 5) | Rota la fila central → |
+
+### Recuperación por la permutación inversa
+
+Por el **teorema del inverso de la composición**:
 
 ```
-P = F₀ ⊕ F₁ ⊕ … ⊕ F₈
+(M₁ ∘ M₂ ∘ … ∘ Mₖ)⁻¹ = Mₖ⁻¹ ∘ … ∘ M₂⁻¹ ∘ M₁⁻¹
 ```
 
-Si se destruye el disco `k`, se recupera con:
+Para deshacer el desorden basta con invertir el historial y aplicar el inverso de
+cada movimiento en orden contrario. Es exactamente lo que hace
+`ProtocolController`, sin necesidad de conocer Σ como objeto completo.
+
+### Recuperación de un disco destruido (Z₂ / XOR)
+
+Antes de reorganizar se calcula el bloque de paridad:
 
 ```
-Fₖ = P ⊕ (⊕ de todos los fragmentos supervivientes)
+P = b₁ ⊕ b₂ ⊕ … ⊕ b₉
 ```
 
-Esto funciona por dos propiedades de Z₂:
-- `a ⊕ a = 0` (todo elemento es su propio inverso aditivo),
-- `a ⊕ 0 = a` (0 es el neutro).
+Si se destruye el disco `k`, su fragmento se recupera con:
 
-Al volver a hacer XOR de la paridad con los fragmentos que sí sobreviven, cada
-uno se cancela consigo mismo en la suma de `P` y solo **sobrevive el fragmento
-perdido**. Además, como el XOR es conmutativo y asociativo, la paridad es
-**invariante bajo cualquier permutación** de los fragmentos: mezclar el clúster
-no altera `P`.
+```
+bₖ = P ⊕ (⊕ de todos los fragmentos i ≠ k)
+```
+
+Al expandir `P`, cada fragmento superviviente aparece **dos veces** y se cancela
+(`a ⊕ a = 0`), dejando únicamente `bₖ`. Además, como el XOR es conmutativo y
+asociativo, **`P` es invariante bajo cualquier permutación**: la recuperación
+funciona sin importar el estado de reorganización del clúster.
 
 ---
 
-## 🎮 Uso
+## Limitaciones
 
-1. **Carga** un archivo `.txt` (arrastrando o seleccionando) o escribe texto
-   directamente. El archivo se fragmenta en 9 bloques y se calcula la paridad.
-2. **Aplica movimientos** A–F o sus inversos para redistribuir los fragmentos;
-   observa la permutación acumulada Σ, su notación cíclica y su orden en el panel
-   *Matemática*.
-3. **Mezcla** aleatoriamente y luego pulsa **Resolver** o usa el panel
-   *Recuperación* para reconstruir el archivo (iterativa o directa).
-4. En el panel *Paridad / Z₂*, **simula el fallo físico** de un disco y
-   **recupéralo** con XOR.
+- Tamaño fijo de 9 discos; los operadores generan un subgrupo propio de S₉ (no
+  todas las 362 880 permutaciones son alcanzables con los 6 movimientos).
+- El esquema XOR recupera **un solo** disco destruido a la vez (como RAID-5). Dos
+  fallos simultáneos requerirían doble paridad / *erasure coding* sobre GF(2⁸).
+- Es una prueba de concepto matemática: no modela latencias de red, concurrencia
+  ni fallos de comunicación.
 
-Todo el estado se **persiste en IndexedDB**, de modo que la sesión sobrevive a
-recargas del navegador.
+## Aplicaciones reales del modelo
+
+RAID (0 y 5), *wear leveling* en discos SSD (orden de permutaciones), la etapa
+*ShiftRows* del cifrado AES (permutaciones de filas) y los códigos de
+Reed-Solomon en CDs/DVDs (generalización del XOR a campos finitos).
